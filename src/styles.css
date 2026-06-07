@@ -1,0 +1,877 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700;800&family=Noto+Kufi+Arabic:wght@700;800;900&display=swap');
+
+:root {
+  --bg: #fff5fb;
+  --paper: rgba(255, 255, 255, 0.82);
+  --ink: #402239;
+  --muted: #846779;
+  --pink: #e54f9a;
+  --pink-dark: #a92772;
+  --lilac: #9b5cff;
+  --gold: #c99a3d;
+  --line: #f2c6df;
+  --shadow: 0 24px 70px rgba(181, 88, 147, 0.16);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--ink);
+  font-family: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(229, 79, 154, .18), transparent 26%),
+    radial-gradient(circle at 92% 12%, rgba(155, 92, 255, .16), transparent 28%),
+    linear-gradient(90deg, rgba(229, 79, 154, .055) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(180deg, rgba(155, 92, 255, .045) 1px, transparent 1px) 0 0 / 48px 48px,
+    var(--bg);
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app {
+  width: min(1220px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+  position: relative;
+}
+
+.sideDecor {
+  position: fixed;
+  writing-mode: vertical-rl;
+  display: flex;
+  gap: 22px;
+  color: rgba(229, 79, 154, .38);
+  font-size: 34px;
+  top: 16vh;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sideDecor.right { right: 18px; }
+.sideDecor.left { left: 18px; }
+
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 250px;
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  padding: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(255, 232, 246, .88)),
+    radial-gradient(circle at 15% 20%, rgba(255,255,255,.8), transparent 28%);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.appHero {
+  min-height: 220px;
+}
+
+.hero::before {
+  content: "QURAN TRACKER";
+  position: absolute;
+  inset-inline-start: 34px;
+  bottom: -18px;
+  font: 900 86px/1 "Noto Kufi Arabic", sans-serif;
+  letter-spacing: 8px;
+  color: rgba(229, 79, 154, .08);
+  direction: ltr;
+}
+
+.overline {
+  color: var(--pink-dark);
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+
+h1, h2, h3, p { margin-top: 0; }
+
+h1 {
+  font-family: "Noto Kufi Arabic", sans-serif;
+  font-size: clamp(44px, 7vw, 82px);
+  line-height: 1.1;
+  margin-bottom: 16px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.hero p:last-child {
+  font-size: 20px;
+  line-height: 1.9;
+  color: var(--muted);
+  max-width: 720px;
+  margin-bottom: 0;
+}
+
+.heroCard {
+  width: 180px;
+  min-height: 178px;
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #e54f9a, #9b5cff);
+  color: white;
+  box-shadow: 0 22px 48px rgba(155, 92, 255, .24);
+}
+
+.heroCard svg { width: 34px; height: 34px; }
+.heroCard strong { font-size: 52px; line-height: 1; }
+.heroCard span { font-weight: 800; }
+
+.logoutButton {
+  min-height: 54px;
+  border-radius: 17px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  background: #402239;
+  font-weight: 900;
+}
+
+.centerScreen {
+  min-height: 80vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loginShell {
+  min-height: calc(100vh - 56px);
+  display: grid;
+  place-items: center;
+}
+
+.loginCard {
+  width: min(760px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  padding: 42px;
+  background: rgba(255,255,255,.88);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.loginCard h1 {
+  font-size: clamp(42px, 7vw, 76px);
+}
+
+.loginCard p {
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.8;
+}
+
+.loginForm {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  text-align: right;
+}
+
+.demoActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.demoActions button {
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  font-weight: 900;
+}
+
+.loginForm button {
+  min-height: 58px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.warning {
+  border: 1px solid #f2bd5a;
+  border-radius: 16px;
+  background: #fff8e3;
+  color: #8a5a00;
+  padding: 12px;
+  font-weight: 800;
+}
+
+.tabs, .studentRail {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px;
+  margin: 18px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.7);
+  backdrop-filter: blur(18px);
+}
+
+.tabs button, .studentChip {
+  min-height: 54px;
+  border-radius: 17px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tabs button svg, .studentChip svg { width: 20px; }
+.tabs button.active, .studentChip.active {
+  background: var(--pink-dark);
+  color: white;
+  box-shadow: 0 14px 28px rgba(169, 39, 114, .2);
+}
+
+.studentChip span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--pink-dark);
+  direction: ltr;
+}
+
+.studentChip small {
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(255,255,255,.24);
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.grid.two { grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); }
+
+.panel {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  padding: 24px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.panelTitle > svg {
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 16px;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+}
+
+.panelTitle h2 {
+  font-family: "Noto Kufi Arabic", sans-serif;
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+.panelTitle p {
+  color: var(--muted);
+  margin: 0;
+  font-weight: 700;
+}
+
+.taskCard {
+  border-radius: 26px;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, #fff0f8, #f3ecff),
+    white;
+  border: 1px solid #efc8dd;
+  margin-bottom: 18px;
+}
+
+.taskCard strong {
+  color: var(--pink-dark);
+  font: 800 18px "Noto Kufi Arabic", sans-serif;
+}
+
+.taskCard h3 {
+  font-size: 34px;
+  line-height: 1.55;
+  margin: 12px 0;
+}
+
+.taskCard span, .scoreLine {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.dailyControls {
+  display: grid;
+  gap: 14px;
+}
+
+.dailyControls.compact {
+  grid-template-columns: 130px 150px;
+  align-items: end;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--pink-dark);
+  font-weight: 900;
+}
+
+select, input, textarea {
+  width: 100%;
+  border: 1.5px solid #e9bbd5;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  padding: 12px 14px;
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.doneButton, .addBar button, .reminderBox button {
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  font-weight: 900;
+}
+
+.iconButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+}
+
+.doneButton.selected {
+  background: linear-gradient(135deg, #2f9b62, #75c89b);
+}
+
+.progressPanel {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.progressRing {
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--pink) var(--progress), #f7d9e9 0);
+  margin-bottom: 18px;
+}
+
+.progressRing span {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: white;
+  font: 900 34px "Noto Kufi Arabic", sans-serif;
+  color: var(--pink-dark);
+}
+
+.scoreLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.scheduleList, .studentCards {
+  display: grid;
+  gap: 12px;
+}
+
+.dayRow {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #f0c8de;
+  border-radius: 22px;
+  background: rgba(255,255,255,.76);
+}
+
+.dayRow.done {
+  background: linear-gradient(135deg, rgba(47, 155, 98, .12), rgba(255,255,255,.85));
+}
+
+.dayRow.completed {
+  background: linear-gradient(135deg, rgba(47, 155, 98, .14), rgba(255,255,255,.88));
+}
+
+.dayRow.ready {
+  background: linear-gradient(135deg, rgba(155, 92, 255, .14), rgba(255,255,255,.88));
+}
+
+.dayRow.needs_review {
+  background: linear-gradient(135deg, rgba(201, 154, 61, .16), rgba(255,255,255,.88));
+}
+
+.dayRow.delayed {
+  background: linear-gradient(135deg, rgba(179, 27, 27, .12), rgba(255,255,255,.88));
+}
+
+.dayNumber {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: var(--pink-dark);
+  font-weight: 900;
+}
+
+.dayRow strong { color: var(--pink-dark); }
+.dayRow h3 { margin: 5px 0; font-size: 20px; }
+.dayRow p { margin-bottom: 4px; font-weight: 800; }
+.dayRow small { color: var(--lilac); font-weight: 900; }
+
+.addBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.addBar.wide {
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+}
+
+.ghost {
+  background: #fff !important;
+  color: var(--pink-dark) !important;
+  border: 1px solid var(--line) !important;
+}
+
+.studentCards {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.studentCard {
+  border: 1px solid #efc8dd;
+  border-radius: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff, #fff0f8);
+}
+
+.avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font: 900 30px Arial, sans-serif;
+  margin-bottom: 14px;
+}
+
+.danger {
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 0 14px;
+  color: #b31b1b;
+  background: #fff2f2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 900;
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  border: 1px solid #efc8dd;
+  border-radius: 22px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fff, #fff0f8);
+}
+
+.metric strong {
+  display: block;
+  font: 900 34px/1 "Noto Kufi Arabic", sans-serif;
+  color: var(--pink-dark);
+  margin-bottom: 8px;
+}
+
+.metric span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.assignmentList {
+  display: grid;
+  gap: 12px;
+}
+
+.assignmentList.compact .dayRow {
+  grid-template-columns: 46px minmax(0, 1fr) 140px;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: 150px 1fr 90px 90px 110px 140px 120px 1.4fr;
+  gap: 8px;
+}
+
+.studentActions {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.studentActions button {
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 0 12px;
+  color: white;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  font-weight: 900;
+}
+
+.assignmentComposer {
+  border: 1px solid #efc8dd;
+  border-radius: 24px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fff, #fff0f8);
+  margin-bottom: 18px;
+}
+
+.assignmentComposer h3 {
+  margin-bottom: 14px;
+  color: var(--pink-dark);
+  font-family: "Noto Kufi Arabic", sans-serif;
+}
+
+.assignmentComposer .doneButton {
+  margin-top: 12px;
+}
+
+.resultCard {
+  border: 1px solid #efc8dd;
+  border-radius: 22px;
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  place-items: center;
+  background: linear-gradient(135deg, #fff0f8, #f3ecff);
+}
+
+.resultCard span {
+  color: var(--pink-dark);
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.resultCard strong {
+  color: var(--ink);
+  font: 900 42px/1 "Noto Kufi Arabic", sans-serif;
+}
+
+.permissionNote {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: #fff3fa;
+  border: 1px solid #efc8dd;
+  font-weight: 900;
+}
+
+.emptyState {
+  border: 1px dashed #e9bbd5;
+  border-radius: 20px;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.mutedText {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.8;
+}
+
+.reminderBox {
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.switch input { display: none; }
+.switch span {
+  width: 58px;
+  height: 32px;
+  border-radius: 999px;
+  background: #f1c8dc;
+  position: relative;
+}
+
+.switch span::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  transition: .2s;
+}
+
+.switch input:checked + span {
+  background: var(--pink);
+}
+
+.switch input:checked + span::after {
+  right: 30px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  min-height: 54px;
+  border-radius: 999px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  background: #402239;
+  box-shadow: 0 22px 48px rgba(64, 34, 57, .22);
+  font-weight: 900;
+}
+
+.toast.error {
+  background: #8f1d2c;
+}
+
+.toast.success {
+  background: #402239;
+}
+
+@media (max-width: 900px) {
+  .hero, .grid.two, .dayRow, .addBar, .addBar.wide, .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    display: grid;
+    padding: 26px;
+  }
+
+  .heroCard {
+    width: 100%;
+    min-height: 120px;
+  }
+
+  .dailyControls.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .editGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .assignmentList.compact .dayRow {
+    grid-template-columns: 1fr;
+  }
+
+  .sideDecor { display: none; }
+}
+
+@media (max-width: 560px) {
+  .app {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 10px 40px;
+    overflow: hidden;
+  }
+  .app > * {
+    max-width: 100%;
+  }
+  .hero {
+    padding: 22px 18px;
+    min-height: auto;
+    border-radius: 26px;
+    overflow: hidden;
+    text-align: center;
+    justify-items: center;
+  }
+  .hero::before {
+    font-size: 48px;
+    inset-inline-start: 12px;
+    bottom: 2px;
+    letter-spacing: 4px;
+  }
+  h1 {
+    font-size: 31px;
+    line-height: 1.18;
+    max-width: 100%;
+    text-align: center;
+  }
+  .hero p:last-child {
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 100%;
+    text-align: center;
+  }
+  .heroCard {
+    border-radius: 22px;
+    min-height: 112px;
+  }
+  .panel { padding: 16px; border-radius: 22px; }
+  .loginCard {
+    padding: 24px;
+    border-radius: 26px;
+  }
+  .tabs, .studentRail {
+    border-radius: 18px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .tabs button, .studentChip {
+    min-height: 48px;
+    padding: 0 13px;
+    font-size: 15px;
+  }
+  .studentChip span {
+    width: 28px;
+    height: 28px;
+  }
+  .panelTitle h2 {
+    font-size: 21px;
+  }
+  .panelTitle > svg {
+    width: 42px;
+    height: 42px;
+  }
+  .taskCard h3 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+  .taskCard {
+    padding: 20px;
+  }
+  .editGrid {
+    grid-template-columns: 1fr;
+  }
+  .dailyControls,
+  .dailyControls.compact {
+    grid-template-columns: 1fr;
+  }
+  .progressRing {
+    width: 160px;
+    height: 160px;
+  }
+  .progressRing span {
+    width: 116px;
+    height: 116px;
+    font-size: 28px;
+  }
+}

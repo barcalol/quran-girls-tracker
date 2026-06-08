@@ -237,6 +237,33 @@ export async function createDefaultPlan(studentId, profileId) {
   return plan;
 }
 
+export async function createCustomPlan(studentId, profileId, plan = {}) {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kuwait',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  const payload = {
+    student_id: studentId,
+    title: plan.title || 'خطة خاصة',
+    surah_name: plan.surah_name || 'خطة مستقلة',
+    start_date: plan.start_date || today,
+    end_date: plan.end_date || plan.start_date || today,
+    is_active: true,
+    created_by: profileId,
+  };
+
+  const { data, error } = await supabase
+    .from('memorization_plans')
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function upsertAssignment(row) {
   const payload = {
     assignment_date: row.assignment_date,

@@ -522,6 +522,29 @@ textarea {
   grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
 }
 
+.planSetup {
+  display: grid;
+  grid-template-columns: 140px repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #efc8dd;
+  border-radius: 22px;
+  padding: 14px;
+  margin: -4px 0 18px;
+  background: linear-gradient(135deg, #fff, #fff3fa);
+}
+
+.planSetup strong {
+  color: var(--pink-dark);
+  font-family: "Noto Kufi Arabic", sans-serif;
+}
+
+.planSetup span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .ghost {
   background: #fff !important;
   color: var(--pink-dark) !important;
@@ -672,6 +695,24 @@ textarea {
   margin-bottom: 14px;
   color: var(--pink-dark);
   font-family: "Noto Kufi Arabic", sans-serif;
+}
+
+.planInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  border: 1px solid #efc8dd;
+  border-radius: 18px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.planInfo strong {
+  color: var(--pink-dark);
 }
 
 .assignmentComposer .doneButton {

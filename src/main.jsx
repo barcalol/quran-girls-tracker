@@ -20,8 +20,8 @@ import {
   UsersRound,
 } from 'lucide-react';
 import {
-  createDefaultPlan,
   createAssignment,
+  createCustomPlan,
   createStudentViaFunction,
   deleteStudent,
   getSessionProfile,
@@ -29,6 +29,7 @@ import {
   getStudentForProfile,
   listAllAssignments,
   listAssignments,
+  listPlans,
   listReminderEvents,
   listStudents,
   queueTodayReminderEvents,
@@ -383,6 +384,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
   const [students, setStudents] = useState([]);
   const [activeId, setActiveId] = useState('');
   const [assignments, setAssignments] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [allAssignments, setAllAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -396,7 +398,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
   }, []);
 
   useEffect(() => {
-    if (activeStudent) loadAssignments(activeStudent.id);
+    if (activeStudent) loadStudentData(activeStudent.id);
   }, [activeStudent?.id]);
 
   async function loadStudents() {
@@ -413,9 +415,14 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
     }
   }
 
-  async function loadAssignments(studentId) {
+  async function loadStudentData(studentId) {
     try {
-      setAssignments(await listAssignments(studentId));
+      const [assignmentRows, planRows] = await Promise.all([
+        listAssignments(studentId),
+        listPlans(studentId),
+      ]);
+      setAssignments(assignmentRows);
+      setPlans(planRows);
     } catch (error) {
       setToast({ type: 'error', message: error.message });
     }
@@ -424,7 +431,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
   async function saveAssignment(row) {
     try {
       await upsertAssignment(row);
-      await loadAssignments(row.student_id);
+      await loadStudentData(row.student_id);
       setAllAssignments(await listAllAssignments());
       setToast({ type: 'success', message: 'تم حفظ الورد' });
     } catch (error) {
@@ -455,7 +462,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
         <StudentsManager profile={profile} students={students} stats={stats} reload={loadStudents} removeStudent={removeStudent} setToast={setToast} />
       )}
       {!loading && view === 'schedule' && activeStudent && (
-        <AssignmentsEditor student={activeStudent} assignments={assignments} saveAssignment={saveAssignment} reload={() => loadAssignments(activeStudent.id)} setToast={setToast} />
+        <AssignmentsEditor student={activeStudent} plans={plans} assignments={assignments} saveAssignment={saveAssignment} reload={() => loadStudentData(activeStudent.id)} setToast={setToast} />
       )}
       {!loading && view === 'reports' && (
         <Reports students={students} stats={stats} assignments={assignments} />
@@ -577,15 +584,38 @@ function AdminToday({ students, stats, todayAssignments, activeStudent, assignme
 }
 
 function StudentsManager({ profile, students, stats, reload, removeStudent, setToast }) {
-  const [form, setForm] = useState({ full_name: '', display_name: '', username: '', password: '' });
+  const [form, setForm] = useState({
+    full_name: '',
+    display_name: '',
+    username: '',
+    password: '',
+    plan_title: 'خطة خاصة',
+    plan_surah_name: '',
+    plan_start_date: todayIso(),
+    plan_end_date: todayIso(),
+  });
 
   async function addStudent() {
     try {
       const created = await createStudentViaFunction({ ...form, role: 'student' });
-      await createDefaultPlan(created.student.id, profile.id);
-      setForm({ full_name: '', display_name: '', username: '', password: '' });
+      await createCustomPlan(created.student.id, profile.id, {
+        title: form.plan_title || `خطة ${form.display_name || form.full_name || 'الطالب'}`,
+        surah_name: form.plan_surah_name || 'خطة خاصة',
+        start_date: form.plan_start_date,
+        end_date: form.plan_end_date || form.plan_start_date,
+      });
+      setForm({
+        full_name: '',
+        display_name: '',
+        username: '',
+        password: '',
+        plan_title: 'خطة خاصة',
+        plan_surah_name: '',
+        plan_start_date: todayIso(),
+        plan_end_date: todayIso(),
+      });
       await reload();
-      setToast({ type: 'success', message: 'تمت إضافة الطالب وخطته' });
+      setToast({ type: 'success', message: 'تمت إضافة الطالب بخطة خاصة مستقلة' });
     } catch (error) {
       setToast({ type: 'error', message: error.message });
     }
@@ -600,6 +630,14 @@ function StudentsManager({ profile, students, stats, reload, removeStudent, setT
         <input placeholder="username" dir="ltr" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
         <input placeholder="password" dir="ltr" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <button onClick={addStudent}><Plus /> إضافة</button>
+      </div>
+      <div className="planSetup">
+        <strong>خطة الطالب الجديد</strong>
+        <input placeholder="اسم الخطة" value={form.plan_title} onChange={(e) => setForm({ ...form, plan_title: e.target.value })} />
+        <input placeholder="السور أو نطاق الخطة" value={form.plan_surah_name} onChange={(e) => setForm({ ...form, plan_surah_name: e.target.value })} />
+        <input type="date" value={form.plan_start_date} onChange={(e) => setForm({ ...form, plan_start_date: e.target.value })} />
+        <input type="date" value={form.plan_end_date} onChange={(e) => setForm({ ...form, plan_end_date: e.target.value })} />
+        <span>سيتم إنشاء خطة مستقلة فارغة، ثم تضيف له الأوراد من تبويب الجدول.</span>
       </div>
       <div className="studentCards">
         {students.map((student) => (
@@ -618,12 +656,12 @@ function StudentsManager({ profile, students, stats, reload, removeStudent, setT
   );
 }
 
-function AssignmentsEditor({ student, assignments, saveAssignment, reload, setToast }) {
-  const [newRow, setNewRow] = useState(() => makeEmptyAssignment(student, assignments));
+function AssignmentsEditor({ student, plans = [], assignments, saveAssignment, reload, setToast }) {
+  const [newRow, setNewRow] = useState(() => makeEmptyAssignment(student, assignments, plans));
 
   useEffect(() => {
-    setNewRow(makeEmptyAssignment(student, assignments));
-  }, [student?.id, assignments.length]);
+    setNewRow(makeEmptyAssignment(student, assignments, plans));
+  }, [student?.id, assignments.length, plans.length]);
 
   async function addAssignment() {
     try {
@@ -644,6 +682,16 @@ function AssignmentsEditor({ student, assignments, saveAssignment, reload, setTo
       <PanelTitle icon={<Edit3 />} title={`خطة ${student.name}`} subtitle="كل ورد قابل للتعديل من الإدارة" />
       <div className="assignmentComposer">
         <h3>إضافة ورد جديد</h3>
+        <div className="planInfo">
+          {plans.length ? (
+            <>
+              <strong>{plans[0].title}</strong>
+              <span>{plans[0].surah_name || 'خطة خاصة'} • من {formatDate(plans[0].start_date)} إلى {formatDate(plans[0].end_date)}</span>
+            </>
+          ) : (
+            <span>لا توجد خطة لهذا الطالب بعد.</span>
+          )}
+        </div>
         <div className="editGrid">
           <input value={newRow.assignment_date} type="date" onChange={(e) => setNewRow({ ...newRow, assignment_date: e.target.value })} />
           <input value={newRow.surah_name} placeholder="اسم السورة" onChange={(e) => setNewRow({ ...newRow, surah_name: e.target.value })} />
@@ -809,9 +857,9 @@ function StudentReminderEvents({ reminders }) {
   );
 }
 
-function makeEmptyAssignment(student, assignments) {
+function makeEmptyAssignment(student, assignments, plans = []) {
   return {
-    plan_id: assignments[0]?.plan_id || '',
+    plan_id: assignments[0]?.plan_id || plans[0]?.id || '',
     student_id: student?.id || '',
     assignment_date: todayIso(),
     surah_name: '',

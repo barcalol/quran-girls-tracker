@@ -57,6 +57,48 @@ const adminStatusOptions = [
   ['delayed', statusLabels.delayed],
 ];
 
+const gradeOptions = Array.from({ length: 21 }, (_, index) => index / 2);
+
+function GradeSelect({ value, onChange, label = 'بدون تقييم' }) {
+  return (
+    <select value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{label}</option>
+      {gradeOptions.map((grade) => <option key={grade} value={grade}>{formatGrade(grade)}/10</option>)}
+    </select>
+  );
+}
+
+function formatGrade(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function numericGrade(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function averageGrades(recitation, performance) {
+  const values = [numericGrade(recitation), numericGrade(performance)].filter((value) => value !== null);
+  if (!values.length) return null;
+  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10;
+}
+
+function assignmentAverage(row) {
+  return averageGrades(row.recitation_grade ?? row.grade, row.performance_grade);
+}
+
+function gradeSummary(row) {
+  const average = assignmentAverage(row);
+  if (average === null) return '';
+  const recitation = row.recitation_grade ?? row.grade;
+  const performance = row.performance_grade;
+  return `• المتوسط ${formatGrade(average)}/10 • التسميع ${formatGrade(recitation)}/10 • الأداء ${formatGrade(performance)}/10`;
+}
+
 function App() {
   const [auth, setAuth] = useState({ loading: true, session: null, profile: null });
   const [toast, setToast] = useState(null);
@@ -152,12 +194,12 @@ function LoginScreen({ onLogin, onDemo, setToast }) {
       <div className="loginCard">
         <p className="overline">منصة المجتهدين</p>
         <h1>متابعة حفظ القرآن</h1>
-        <p>دخول الإدارة أو الطالبة باسم مستخدم وكلمة مرور، وكل البيانات محفوظة في Supabase.</p>
+        <p>دخول الإدارة أو الطالب باسم مستخدم وكلمة مرور، وكل البيانات محفوظة في Supabase.</p>
         {!hasSupabaseConfig && <div className="warning">لم يتم ربط Supabase بعد. انسخ `.env.example` إلى `.env` وأضف المفاتيح.</div>}
         {!hasSupabaseConfig && (
           <div className="demoActions">
             <button type="button" onClick={() => onDemo('admin')}><Sparkles /> دخول تجريبي كإدارة</button>
-            <button type="button" className="ghost" onClick={() => onDemo('student')}><UserRound /> دخول تجريبي كطالبة</button>
+            <button type="button" className="ghost" onClick={() => onDemo('student')}><UserRound /> دخول تجريبي كطالب</button>
           </div>
         )}
         <form onSubmit={submit} className="loginForm">
@@ -183,7 +225,8 @@ function DemoDashboard({ role, onExit }) {
         id: `${student.id}-${index}`,
         student_id: student.id,
         status: index === 0 ? 'ready' : 'pending',
-        grade: index === 0 ? 9 : null,
+        recitation_grade: index === 0 ? 9 : null,
+        performance_grade: index === 0 ? 8.5 : null,
       })),
     ),
   );
@@ -243,7 +286,9 @@ function DemoAssignmentComposer({ student, assignments, onAdd }) {
       student_id: student.id,
       from_ayah: Number(newRow.from_ayah),
       to_ayah: Number(newRow.to_ayah),
-      grade: newRow.grade === '' ? null : Number(newRow.grade),
+      grade: averageGrades(newRow.recitation_grade, newRow.performance_grade),
+      recitation_grade: newRow.recitation_grade === '' ? null : Number(newRow.recitation_grade),
+      performance_grade: newRow.performance_grade === '' ? null : Number(newRow.performance_grade),
       sort_order: assignments.length + 1,
     });
   }
@@ -257,8 +302,9 @@ function DemoAssignmentComposer({ student, assignments, onAdd }) {
         <input value={newRow.to_ayah} type="number" placeholder="إلى آية" onChange={(e) => setNewRow({ ...newRow, to_ayah: e.target.value })} />
         <input value={newRow.page_or_face} placeholder="رقم الوجه/الصفحة" onChange={(e) => setNewRow({ ...newRow, page_or_face: e.target.value })} />
         <select value={newRow.status} onChange={(e) => setNewRow({ ...newRow, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
-        <select value={newRow.grade ?? ''} onChange={(e) => setNewRow({ ...newRow, grade: e.target.value })}><option value="">بدون تقييم</option>{Array.from({ length: 10 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{value}/10</option>)}</select>
-        <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالبة" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
+        <GradeSelect value={newRow.recitation_grade} onChange={(value) => setNewRow({ ...newRow, recitation_grade: value })} label="تقييم التسميع" />
+        <GradeSelect value={newRow.performance_grade} onChange={(value) => setNewRow({ ...newRow, performance_grade: value })} label="تقييم الأداء" />
+        <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالب" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
       </div>
       <button className="doneButton" onClick={addDemoAssignment}><Plus /> إضافة الورد</button>
     </div>
@@ -323,7 +369,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
     try {
       await deleteStudent(student);
       await loadStudents();
-      setToast({ type: 'success', message: 'تم حذف الطالبة وحسابها' });
+      setToast({ type: 'success', message: 'تم حذف الطالب وحسابه' });
     } catch (error) {
       setToast({ type: 'error', message: error.message });
     }
@@ -331,7 +377,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
 
   return (
     <>
-      <Header title="لوحة إدارة حفظ القرآن" subtitle="إدارة الطالبات، الخطط، التقييمات، والملاحظات." onSignOut={onSignOut} />
+      <Header title="لوحة إدارة حفظ القرآن" subtitle="إدارة الطلاب، الخطط، التقييمات، والملاحظات." onSignOut={onSignOut} />
       <TopTabs view={view} setView={setView} />
       <StudentRail students={students} activeId={activeStudent?.id} setActiveId={setActiveId} stats={stats} />
       {loading && <LoadingPanel />}
@@ -415,7 +461,7 @@ function TopTabs({ view, setView }) {
   const items = [
     ['today', CalendarDays, 'اليوم'],
     ['schedule', BookOpen, 'الجدول'],
-    ['students', UsersRound, 'الطالبات'],
+    ['students', UsersRound, 'الطلاب'],
     ['reports', Star, 'التقارير'],
     ['reminders', Bell, 'التذكير'],
   ];
@@ -447,11 +493,11 @@ function AdminToday({ students, stats, todayAssignments, activeStudent, assignme
   return (
     <section className="grid two">
       <section className="panel">
-        <PanelTitle icon={<CalendarDays />} title="ملخص اليوم" subtitle="أوراد اليوم لكل الطالبات" />
+        <PanelTitle icon={<CalendarDays />} title="ملخص اليوم" subtitle="أوراد اليوم لكل الطلاب" />
         <div className="metricGrid">
-          <Metric label="عدد الطالبات" value={students.length} />
+          <Metric label="عدد الطلاب" value={students.length} />
           <Metric label="أوراد اليوم" value={todayAssignments.length} />
-          <Metric label="إنجاز الطالبة" value={`${activeStats.progress || 0}%`} />
+          <Metric label="إنجاز الطالب" value={`${activeStats.progress || 0}%`} />
           <Metric label="متوسط التقييم" value={activeStats.average || '—'} />
         </div>
       </section>
@@ -472,7 +518,7 @@ function StudentsManager({ profile, students, stats, reload, removeStudent, setT
       await createDefaultPlan(created.student.id, profile.id);
       setForm({ full_name: '', display_name: '', username: '', password: '' });
       await reload();
-      setToast({ type: 'success', message: 'تمت إضافة الطالبة وخطتها' });
+      setToast({ type: 'success', message: 'تمت إضافة الطالب وخطته' });
     } catch (error) {
       setToast({ type: 'error', message: error.message });
     }
@@ -480,7 +526,7 @@ function StudentsManager({ profile, students, stats, reload, removeStudent, setT
 
   return (
     <section className="panel">
-      <PanelTitle icon={<UsersRound />} title="الطالبات" subtitle="إضافة وتعديل وإدارة الحسابات" />
+      <PanelTitle icon={<UsersRound />} title="الطلاب" subtitle="إضافة وتعديل وإدارة الحسابات" />
       <div className="addBar wide">
         <input placeholder="الاسم الكامل" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
         <input placeholder="اسم العرض" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
@@ -493,10 +539,10 @@ function StudentsManager({ profile, students, stats, reload, removeStudent, setT
           <article key={student.id} className="studentCard">
             <div className="avatar">{student.name.slice(0, 1)}</div>
             <h3>{student.name}</h3>
-            <p>@{student.profile?.username} • {stats[student.id]?.progress || 0}% مكتمل • متوسط {stats[student.id]?.average || '—'}</p>
+            <p>@{student.profile?.username} • {stats[student.id]?.progress || 0}% مكتمل • متوسط {formatGrade(stats[student.id]?.average)}</p>
             <div className="cardActions">
-              <span className="permissionNote">الطالبة تشاهد النتيجة فقط</span>
-              <button className="danger" onClick={() => window.confirm(`تأكيد حذف ${student.name} وحسابها؟`) && removeStudent(student)}><Trash2 /> حذف</button>
+              <span className="permissionNote">الطالب يشاهد النتيجة فقط</span>
+              <button className="danger" onClick={() => window.confirm(`تأكيد حذف ${student.name} وحسابه؟`) && removeStudent(student)}><Trash2 /> حذف</button>
             </div>
           </article>
         ))}
@@ -515,7 +561,7 @@ function AssignmentsEditor({ student, assignments, saveAssignment, reload, setTo
   async function addAssignment() {
     try {
       if (!newRow.plan_id) {
-        setToast({ type: 'error', message: 'أضف خطة للطالبة أولًا أو استخدم الخطة الافتراضية' });
+        setToast({ type: 'error', message: 'أضف خطة للطالب أولًا أو استخدم الخطة الافتراضية' });
         return;
       }
       await createAssignment(newRow);
@@ -538,8 +584,9 @@ function AssignmentsEditor({ student, assignments, saveAssignment, reload, setTo
           <input value={newRow.to_ayah} type="number" placeholder="إلى آية" onChange={(e) => setNewRow({ ...newRow, to_ayah: e.target.value })} />
           <input value={newRow.page_or_face} placeholder="رقم الوجه/الصفحة" onChange={(e) => setNewRow({ ...newRow, page_or_face: e.target.value })} />
           <select value={newRow.status} onChange={(e) => setNewRow({ ...newRow, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
-          <select value={newRow.grade ?? ''} onChange={(e) => setNewRow({ ...newRow, grade: e.target.value })}><option value="">بدون تقييم</option>{Array.from({ length: 10 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{value}/10</option>)}</select>
-          <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالبة" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
+          <GradeSelect value={newRow.recitation_grade} onChange={(value) => setNewRow({ ...newRow, recitation_grade: value })} label="تقييم التسميع" />
+          <GradeSelect value={newRow.performance_grade} onChange={(value) => setNewRow({ ...newRow, performance_grade: value })} label="تقييم الأداء" />
+          <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالب" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
         </div>
         <button className="doneButton" onClick={addAssignment}><Plus /> إضافة الورد</button>
       </div>
@@ -574,7 +621,8 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
           <input value={draft.to_ayah} type="number" onChange={(e) => setDraft({ ...draft, to_ayah: e.target.value })} />
           <input value={draft.page_or_face || ''} onChange={(e) => setDraft({ ...draft, page_or_face: e.target.value })} />
           <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
-          <select value={draft.grade ?? ''} onChange={(e) => setDraft({ ...draft, grade: e.target.value })}><option value="">بدون تقييم</option>{Array.from({ length: 10 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{value}/10</option>)}</select>
+          <GradeSelect value={draft.recitation_grade ?? draft.grade ?? ''} onChange={(value) => setDraft({ ...draft, recitation_grade: value, grade: averageGrades(value, draft.performance_grade) })} label="تقييم التسميع" />
+          <GradeSelect value={draft.performance_grade ?? ''} onChange={(value) => setDraft({ ...draft, performance_grade: value, grade: averageGrades(draft.recitation_grade, value) })} label="تقييم الأداء" />
           <input value={draft.admin_note || ''} onChange={(e) => setDraft({ ...draft, admin_note: e.target.value })} placeholder="ملاحظة الإدارة" />
         </div>
         <button className="iconButton" onClick={() => saveAssignment(draft)}><Save /></button>
@@ -589,8 +637,8 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
         <strong>{formatDate(row.assignment_date)}</strong>
         <h3>سورة {row.surah_name} • من {row.from_ayah} إلى {row.to_ayah}</h3>
         <p>الوجه {row.page_or_face || '—'} • {row.admin_note || 'بدون ملاحظة'}</p>
-        <small>{statusLabels[row.status]} {row.grade != null ? `• ${row.grade}/10` : ''}</small>
-        {row.student_note && <small>ملاحظة الطالبة: {row.student_note}</small>}
+        <small>{statusLabels[row.status]} {gradeSummary(row)}</small>
+        {row.student_note && <small>ملاحظة الطالب: {row.student_note}</small>}
       </div>
       {!readOnly && saveAssignment && (
         <div className="quickControls">
@@ -599,11 +647,12 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
             <select value={row.status} onChange={(e) => saveAssignment({ ...row, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
           </label>
           <label>
-            التقييم
-            <select value={row.grade ?? ''} onChange={(e) => saveAssignment({ ...row, grade: e.target.value === '' ? null : Number(e.target.value) })}>
-              <option value="">بدون تقييم</option>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{value}/10</option>)}
-            </select>
+            التسميع
+            <GradeSelect value={row.recitation_grade ?? row.grade ?? ''} onChange={(value) => saveAssignment({ ...row, recitation_grade: value === '' ? null : Number(value), grade: averageGrades(value, row.performance_grade) })} />
+          </label>
+          <label>
+            الأداء
+            <GradeSelect value={row.performance_grade ?? ''} onChange={(value) => saveAssignment({ ...row, performance_grade: value === '' ? null : Number(value), grade: averageGrades(row.recitation_grade, value) })} />
           </label>
         </div>
       )}
@@ -623,7 +672,11 @@ function StudentToday({ assignment }) {
       </div>
       <div className="resultCard">
         <span>{statusLabels[assignment.status]}</span>
-        <strong>{assignment.grade != null ? `${assignment.grade}/10` : 'لم يتم التقييم بعد'}</strong>
+        <strong>{assignmentAverage(assignment) != null ? `${formatGrade(assignmentAverage(assignment))}/10` : 'لم يتم التقييم بعد'}</strong>
+        <div className="gradeBreakdown">
+          <span>التسميع: {formatGrade(assignment.recitation_grade ?? assignment.grade)}/10</span>
+          <span>الأداء: {formatGrade(assignment.performance_grade)}/10</span>
+        </div>
       </div>
     </section>
   );
@@ -635,7 +688,7 @@ function StudentProgress({ student, stats }) {
       <div className="progressRing" style={{ '--progress': `${stats.progress}%` }}><span>{stats.progress}%</span></div>
       <h2>تقدم {student.name}</h2>
       <p>تم إنجاز {stats.completed} من {stats.total} وردًا.</p>
-      <div className="scoreLine"><Star /> متوسط التقييم: <strong>{stats.average || '—'}</strong></div>
+      <div className="scoreLine"><Star /> متوسط التقييم: <strong>{formatGrade(stats.average)}</strong></div>
     </section>
   );
 }
@@ -671,6 +724,8 @@ function makeEmptyAssignment(student, assignments) {
     page_or_face: '',
     status: 'pending',
     grade: '',
+    recitation_grade: '',
+    performance_grade: '',
     admin_note: '',
     sort_order: (assignments.at(-1)?.sort_order || assignments.length) + 1,
   };
@@ -679,7 +734,7 @@ function makeEmptyAssignment(student, assignments) {
 function Reports({ students, stats }) {
   const rows = students.map((student) => ({ student, stat: stats[student.id] || computeOneStats([]) }));
   function exportCsv() {
-    const csv = ['name,progress,completed,total,average', ...rows.map(({ student, stat }) => `${student.name},${stat.progress},${stat.completed},${stat.total},${stat.average}`)].join('\n');
+    const csv = ['name,progress,completed,total,average,recitation_average,performance_average', ...rows.map(({ student, stat }) => `${student.name},${stat.progress},${stat.completed},${stat.total},${stat.average},${stat.recitationAverage},${stat.performanceAverage}`)].join('\n');
     const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -696,7 +751,7 @@ function Reports({ students, stats }) {
         {rows.map(({ student, stat }) => (
           <article className="studentCard" key={student.id}>
             <h3>{student.name}</h3>
-            <p>{stat.progress}% مكتمل • {stat.completed}/{stat.total} • متوسط {stat.average || '—'}</p>
+            <p>{stat.progress}% مكتمل • {stat.completed}/{stat.total} • متوسط {formatGrade(stat.average)} • تسميع {formatGrade(stat.recitationAverage)} • أداء {formatGrade(stat.performanceAverage)}</p>
           </article>
         ))}
       </div>
@@ -825,13 +880,18 @@ function computeStats(students, assignments) {
 function computeOneStats(rows) {
   const total = rows.length;
   const completed = rows.filter((row) => row.status === 'completed').length;
-  const grades = rows
-    .filter((row) => row.grade !== null && row.grade !== undefined && row.grade !== '')
-    .map((row) => Number(row.grade))
-    .filter((grade) => Number.isFinite(grade));
-  const average = grades.length ? Math.round((grades.reduce((sum, grade) => sum + grade, 0) / grades.length) * 10) / 10 : 0;
+  const recitationGrades = rows
+    .map((row) => numericGrade(row.recitation_grade ?? row.grade))
+    .filter((grade) => grade !== null);
+  const performanceGrades = rows
+    .map((row) => numericGrade(row.performance_grade))
+    .filter((grade) => grade !== null);
+  const averages = rows.map(assignmentAverage).filter((grade) => grade !== null);
+  const average = averages.length ? Math.round((averages.reduce((sum, grade) => sum + grade, 0) / averages.length) * 10) / 10 : null;
+  const recitationAverage = recitationGrades.length ? Math.round((recitationGrades.reduce((sum, grade) => sum + grade, 0) / recitationGrades.length) * 10) / 10 : null;
+  const performanceAverage = performanceGrades.length ? Math.round((performanceGrades.reduce((sum, grade) => sum + grade, 0) / performanceGrades.length) * 10) / 10 : null;
   const progress = total ? Math.round((completed / total) * 100) : 0;
-  return { total, completed, average, progress };
+  return { total, completed, average, recitationAverage, performanceAverage, progress };
 }
 
 function todayIso() {

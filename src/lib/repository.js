@@ -1,5 +1,8 @@
-import { supabase, usernameToEmail } from './supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, usernameToEmail, supabaseAnonKey, supabaseUrl } from './supabase';
 import { defaultSchedule } from './scheduleSeed';
+
+const normalizeGrade = (value) => (value === '' || value == null ? null : Number(value));
 
 export async function signIn(username, password) {
   if (!supabase) throw new Error('Supabase غير مضبوط. أضف ملف .env');
@@ -90,7 +93,9 @@ export async function createAssignment(row) {
     page_or_face: row.page_or_face,
     admin_note: row.admin_note || '',
     status: row.status || 'pending',
-    grade: row.grade === '' || row.grade == null ? null : Number(row.grade),
+    grade: normalizeGrade(row.grade),
+    recitation_grade: normalizeGrade(row.recitation_grade),
+    performance_grade: normalizeGrade(row.performance_grade),
     sort_order: Number(row.sort_order || 0),
   };
   const { data, error } = await supabase
@@ -106,9 +111,66 @@ export async function createStudentViaFunction(payload) {
   const { data, error } = await supabase.functions.invoke('admin-create-user', {
     body: payload,
   });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  if (error) return createStudentViaSignup(payload);
+  if (data?.error) return createStudentViaSignup(payload);
   return data;
+}
+
+async function createStudentViaSignup(payload) {
+  if (!supabaseUrl || !supabaseAnonKey) throw new Error('Supabase غير مضبوط');
+  const username = String(payload.username || '').trim().toLowerCase();
+  const password = String(payload.password || '');
+  const fullName = String(payload.full_name || payload.name || '').trim();
+  const displayName = String(payload.display_name || fullName || username).trim();
+
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+    throw new Error('اسم المستخدم يجب أن يكون 3-30 حرفًا: حروف إنجليزية صغيرة أو أرقام أو _');
+  }
+  if (!fullName || password.length < 8) {
+    throw new Error('اكتب الاسم الكامل وكلمة مرور لا تقل عن 8 أحرف');
+  }
+
+  const signupClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: created, error: signupError } = await signupClient.auth.signUp({
+    email: usernameToEmail(username),
+    password,
+    options: {
+      data: { username, display_name: displayName, role: 'student' },
+    },
+  });
+  if (signupError) throw signupError;
+  if (!created.user?.id) throw new Error('تعذر إنشاء حساب الطالب');
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      auth_user_id: created.user.id,
+      full_name: fullName,
+      display_name: displayName,
+      username,
+      role: 'student',
+      status: 'active',
+    })
+    .select()
+    .single();
+  if (profileError) throw profileError;
+
+  const { data: student, error: studentError } = await supabase
+    .from('students')
+    .insert({
+      profile_id: profile.id,
+      name: displayName,
+      notes_internal: '',
+      allow_student_notes: false,
+      allow_student_complete: false,
+    })
+    .select()
+    .single();
+  if (studentError) throw studentError;
+
+  return { profile, student };
 }
 
 export async function updateStudent(studentId, patch) {
@@ -161,6 +223,9 @@ export async function createDefaultPlan(studentId, profileId) {
     plan_id: plan.id,
     student_id: studentId,
     status: 'pending',
+    grade: null,
+    recitation_grade: null,
+    performance_grade: null,
   }));
 
   const { error: assignmentError } = await supabase.from('daily_assignments').insert(rows);
@@ -177,7 +242,9 @@ export async function upsertAssignment(row) {
     page_or_face: row.page_or_face,
     admin_note: row.admin_note,
     status: row.status,
-    grade: row.grade === '' || row.grade == null ? null : Number(row.grade),
+    grade: normalizeGrade(row.grade),
+    recitation_grade: normalizeGrade(row.recitation_grade),
+    performance_grade: normalizeGrade(row.performance_grade),
   };
   return updateAssignment(row.id, payload);
 }

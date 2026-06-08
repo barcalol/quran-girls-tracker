@@ -48,7 +48,9 @@ create table if not exists public.daily_assignments (
   status text not null default 'pending' check (status in ('pending', 'ready', 'completed', 'delayed', 'needs_review')),
   admin_note text,
   student_note text,
-  grade int check (grade is null or grade between 0 and 10),
+  grade numeric(3,1) check (grade is null or (grade between 0 and 10 and grade * 2 = floor(grade * 2))),
+  recitation_grade numeric(3,1) check (recitation_grade is null or (recitation_grade between 0 and 10 and recitation_grade * 2 = floor(recitation_grade * 2))),
+  performance_grade numeric(3,1) check (performance_grade is null or (performance_grade between 0 and 10 and performance_grade * 2 = floor(performance_grade * 2))),
   completed_at timestamptz,
   sort_order int not null default 0,
   created_at timestamptz not null default now(),
@@ -59,7 +61,16 @@ create table if not exists public.evaluations (
   id uuid primary key default gen_random_uuid(),
   assignment_id uuid not null references public.daily_assignments(id) on delete cascade,
   student_id uuid not null references public.students(id) on delete cascade,
-  grade int not null check (grade between 0 and 10),
+  recitation_grade numeric(3,1) check (recitation_grade is null or (recitation_grade between 0 and 10 and recitation_grade * 2 = floor(recitation_grade * 2))),
+  performance_grade numeric(3,1) check (performance_grade is null or (performance_grade between 0 and 10 and performance_grade * 2 = floor(performance_grade * 2))),
+  grade numeric(3,1) generated always as (
+    case
+      when recitation_grade is not null and performance_grade is not null then round(((recitation_grade + performance_grade) / 2)::numeric, 1)
+      when recitation_grade is not null then recitation_grade
+      when performance_grade is not null then performance_grade
+      else null
+    end
+  ) stored,
   note text,
   evaluated_by uuid references public.profiles(id),
   created_at timestamptz not null default now()
@@ -161,6 +172,8 @@ begin
       or new.page_or_face is distinct from old.page_or_face
       or new.admin_note is distinct from old.admin_note
       or new.grade is distinct from old.grade
+      or new.recitation_grade is distinct from old.recitation_grade
+      or new.performance_grade is distinct from old.performance_grade
       or new.sort_order is distinct from old.sort_order
     then
       raise exception 'students may only update status, student_note, and completed_at';

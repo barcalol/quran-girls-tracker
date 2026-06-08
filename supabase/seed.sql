@@ -12,4 +12,11 @@ values (
 )
 on conflict (key) do update set value = excluded.value, updated_at = now();
 
+insert into public.app_settings (key, value)
+values (
+  'cloud_reminders',
+  '{"enabled": true, "time": "17:00", "timezone": "Asia/Kuwait", "channel": "in_app_cloud", "message": "تذكير لطيف: ورد اليوم بانتظار المتابعة."}'
+)
+on conflict (key) do update set value = excluded.value, updated_at = now();
+
 -- The app can also create these rows after login through admin screens.

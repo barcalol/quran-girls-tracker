@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  AlertCircle,
   Bell,
   BookOpen,
   CalendarDays,
@@ -24,18 +25,20 @@ import {
   createStudentViaFunction,
   deleteStudent,
   getSessionProfile,
+  getReminderSettings,
   getStudentForProfile,
   listAllAssignments,
   listAssignments,
+  listReminderEvents,
   listStudents,
+  queueTodayReminderEvents,
+  saveReminderSettings,
   signIn,
   signOut,
-  updateAssignment,
   updateStudent,
   upsertAssignment,
 } from './lib/repository';
-import { formatDate } from './lib/scheduleSeed';
-import { defaultSchedule } from './lib/scheduleSeed';
+import { defaultSchedule, formatDate } from './lib/scheduleSeed';
 import { hasSupabaseConfig, supabase } from './lib/supabase';
 import './styles.css';
 
@@ -103,7 +106,12 @@ function App() {
       ) : (
         <StudentDashboard profile={auth.profile} onSignOut={handleSignOut} setToast={setToast} />
       )}
-      {toast && <div className={`toast ${toast.type || 'success'}`}><Sparkles /> {toast.message}</div>}
+      {toast && (
+        <div className={`toast ${toast.type || 'success'}`}>
+          {toast.type === 'error' ? <AlertCircle /> : <Sparkles />}
+          {toast.message}
+        </div>
+      )}
     </main>
   );
 }
@@ -142,7 +150,7 @@ function LoginScreen({ onLogin, onDemo, setToast }) {
   return (
     <section className="loginShell">
       <div className="loginCard">
-        <p className="overline">متابعة يومية ناعمة للبنات</p>
+        <p className="overline">منصة المجتهدين</p>
         <h1>متابعة حفظ القرآن</h1>
         <p>دخول الإدارة أو الطالبة باسم مستخدم وكلمة مرور، وكل البيانات محفوظة في Supabase.</p>
         {!hasSupabaseConfig && <div className="warning">لم يتم ربط Supabase بعد. انسخ `.env.example` إلى `.env` وأضف المفاتيح.</div>}
@@ -339,7 +347,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
       {!loading && view === 'reports' && (
         <Reports students={students} stats={stats} assignments={assignments} />
       )}
-      {!loading && view === 'reminders' && <ReminderInfo />}
+      {!loading && view === 'reminders' && <ReminderInfo setToast={setToast} />}
     </>
   );
 }
@@ -347,6 +355,7 @@ function AdminDashboard({ profile, onSignOut, setToast }) {
 function StudentDashboard({ profile, onSignOut, setToast }) {
   const [student, setStudent] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -359,28 +368,11 @@ function StudentDashboard({ profile, onSignOut, setToast }) {
       const row = await getStudentForProfile(profile.id);
       setStudent(row);
       setAssignments(await listAssignments(row.id));
+      setReminders(await listReminderEvents(row.id));
     } catch (error) {
       setToast({ type: 'error', message: error.message });
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function studentUpdate(row, patch) {
-    try {
-      if (patch.status === 'completed' && !student.allow_student_complete) {
-        setToast({ type: 'error', message: 'الإدارة لم تسمح بتحديد الإنجاز' });
-        return;
-      }
-      if (patch.student_note && !student.allow_student_notes) {
-        setToast({ type: 'error', message: 'ملاحظات الطالبة غير مفعلة' });
-        return;
-      }
-      await updateAssignment(row.id, patch);
-      await load();
-      setToast({ type: 'success', message: 'تم إرسال التحديث للإدارة' });
-    } catch (error) {
-      setToast({ type: 'error', message: error.message });
     }
   }
 
@@ -394,7 +386,8 @@ function StudentDashboard({ profile, onSignOut, setToast }) {
       {!loading && student && (
         <section className="grid two">
           <StudentProgress student={student} stats={stats} />
-        <StudentToday assignment={todayAssignment} />
+          <StudentToday assignment={todayAssignment} />
+          <StudentReminderEvents reminders={reminders} />
           <section className="panel full">
             <PanelTitle icon={<BookOpen />} title="سجل الحفظ" subtitle="الأيام السابقة والقادمة" />
             <AssignmentTable rows={assignments} readOnly />
@@ -409,7 +402,7 @@ function Header({ title, subtitle, onSignOut }) {
   return (
     <header className="hero appHero">
       <div>
-        <p className="overline">متابعة يومية ناعمة للبنات</p>
+        <p className="overline">منصة المجتهدين</p>
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>
@@ -600,7 +593,19 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
         {row.student_note && <small>ملاحظة الطالبة: {row.student_note}</small>}
       </div>
       {!readOnly && saveAssignment && (
-        <select value={row.status} onChange={(e) => saveAssignment({ ...row, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+        <div className="quickControls">
+          <label>
+            الحالة
+            <select value={row.status} onChange={(e) => saveAssignment({ ...row, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+          </label>
+          <label>
+            التقييم
+            <select value={row.grade ?? ''} onChange={(e) => saveAssignment({ ...row, grade: e.target.value === '' ? null : Number(e.target.value) })}>
+              <option value="">بدون تقييم</option>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((value) => <option key={value} value={value}>{value}/10</option>)}
+            </select>
+          </label>
+        </div>
       )}
     </article>
   );
@@ -631,6 +636,26 @@ function StudentProgress({ student, stats }) {
       <h2>تقدم {student.name}</h2>
       <p>تم إنجاز {stats.completed} من {stats.total} وردًا.</p>
       <div className="scoreLine"><Star /> متوسط التقييم: <strong>{stats.average || '—'}</strong></div>
+    </section>
+  );
+}
+
+function StudentReminderEvents({ reminders }) {
+  return (
+    <section className="panel">
+      <PanelTitle icon={<Bell />} title="تذكيراتك" subtitle="آخر التنبيهات السحابية من الإدارة" />
+      {!reminders.length ? (
+        <div className="emptyState">لا توجد تذكيرات حتى الآن.</div>
+      ) : (
+        <div className="reminderList">
+          {reminders.map((reminder) => (
+            <article className={`reminderItem ${reminder.status}`} key={reminder.id}>
+              <strong>{reminder.message}</strong>
+              <span>{formatDate(reminder.event_date)} • {reminder.status === 'queued' ? 'بانتظار الإرسال' : reminder.status}</span>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -679,11 +704,91 @@ function Reports({ students, stats }) {
   );
 }
 
-function ReminderInfo() {
+function ReminderInfo({ setToast }) {
+  const [settings, setSettings] = useState({
+    enabled: true,
+    time: '17:00',
+    timezone: 'Asia/Kuwait',
+    channel: 'in_app_cloud',
+    message: 'تذكير لطيف: ورد اليوم بانتظار المتابعة.',
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [queueing, setQueueing] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      try {
+        const value = await getReminderSettings();
+        if (alive) setSettings((current) => ({ ...current, ...value }));
+      } catch (error) {
+        setToast({ type: 'error', message: error.message });
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [setToast]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const value = await saveReminderSettings(settings);
+      setSettings((current) => ({ ...current, ...value }));
+      setToast({ type: 'success', message: 'تم حفظ إعدادات التذكير السحابي' });
+    } catch (error) {
+      setToast({ type: 'error', message: error.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function queueToday() {
+    setQueueing(true);
+    try {
+      const count = await queueTodayReminderEvents(todayIso(), settings.message);
+      setToast({ type: 'success', message: count ? `تم إنشاء ${count} تذكيرًا سحابيًا` : 'لا توجد أوراد تحتاج تذكيرًا اليوم' });
+    } catch (error) {
+      setToast({ type: 'error', message: error.message });
+    } finally {
+      setQueueing(false);
+    }
+  }
+
   return (
     <section className="panel reminderPanel">
-      <PanelTitle icon={<Bell />} title="التذكير" subtitle="إشعارات المتصفح والتذكير السحابي" />
-      <p className="mutedText">النسخة الحالية تحفظ التذكير داخل واجهة التطبيق. للإشعارات السحابية الحقيقية نضيف لاحقًا Supabase Cron + بريد/Push حسب الخدمة التي تختارها.</p>
+      <PanelTitle icon={<Bell />} title="التذكير السحابي" subtitle="إعداد محفوظ في Supabase لكل الأجهزة" />
+      {loading ? (
+        <LoadingPanel />
+      ) : (
+        <div className="reminderBox">
+          <label className="switchRow">
+            <span>تفعيل التذكير</span>
+            <input
+              type="checkbox"
+              checked={settings.enabled}
+              onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })}
+            />
+          </label>
+          <div className="reminderGrid">
+            <label>وقت التذكير<input type="time" value={settings.time} onChange={(event) => setSettings({ ...settings, time: event.target.value })} /></label>
+            <label>المنطقة الزمنية<input dir="ltr" value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
+          </div>
+          <label>نص التذكير<textarea value={settings.message} onChange={(event) => setSettings({ ...settings, message: event.target.value })} /></label>
+          <div className="cloudNote">
+            <Bell />
+            <span>الإعداد محفوظ سحابيًا في قاعدة البيانات. وظيفة الإرسال المجدولة موجودة في مجلد Supabase Edge Functions للربط مع Cron عند تفعيلها من لوحة Supabase.</span>
+          </div>
+          <div className="reminderActions">
+            <button className="doneButton" onClick={save} disabled={saving}>{saving ? <Loader2 className="spin" /> : <Save />} حفظ التذكير</button>
+            <button className="ghostAction" onClick={queueToday} disabled={queueing}>{queueing ? <Loader2 className="spin" /> : <Bell />} إنشاء تذكيرات اليوم الآن</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -720,7 +825,10 @@ function computeStats(students, assignments) {
 function computeOneStats(rows) {
   const total = rows.length;
   const completed = rows.filter((row) => row.status === 'completed').length;
-  const grades = rows.map((row) => Number(row.grade)).filter((grade) => Number.isFinite(grade));
+  const grades = rows
+    .filter((row) => row.grade !== null && row.grade !== undefined && row.grade !== '')
+    .map((row) => Number(row.grade))
+    .filter((grade) => Number.isFinite(grade));
   const average = grades.length ? Math.round((grades.reduce((sum, grade) => sum + grade, 0) / grades.length) * 10) / 10 : 0;
   const progress = total ? Math.round((completed / total) * 100) : 0;
   return { total, completed, average, progress };

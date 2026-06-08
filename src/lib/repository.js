@@ -181,3 +181,71 @@ export async function upsertAssignment(row) {
   };
   return updateAssignment(row.id, payload);
 }
+
+export async function getReminderSettings() {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'cloud_reminders')
+    .maybeSingle();
+  if (error) throw error;
+  return data?.value || {
+    enabled: true,
+    time: '17:00',
+    timezone: 'Asia/Kuwait',
+    channel: 'in_app_cloud',
+    message: 'تذكير لطيف: ورد اليوم بانتظار المتابعة.',
+  };
+}
+
+export async function saveReminderSettings(value) {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .upsert(
+      { key: 'cloud_reminders', value, updated_at: new Date().toISOString() },
+      { onConflict: 'key' },
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data.value;
+}
+
+export async function listReminderEvents(studentId) {
+  const { data, error } = await supabase
+    .from('reminder_events')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+    .limit(8);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function queueTodayReminderEvents(eventDate, message) {
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from('daily_assignments')
+    .select('id, student_id, assignment_date, surah_name, from_ayah, to_ayah, status')
+    .eq('assignment_date', eventDate)
+    .in('status', ['pending', 'ready', 'needs_review']);
+  if (assignmentsError) throw assignmentsError;
+
+  const rows = (assignments || []).map((assignment) => ({
+    student_id: assignment.student_id,
+    assignment_id: assignment.id,
+    event_date: eventDate,
+    status: 'queued',
+    message,
+    metadata: {
+      surah_name: assignment.surah_name,
+      from_ayah: assignment.from_ayah,
+      to_ayah: assignment.to_ayah,
+      source: 'admin-manual-cloud-reminder',
+    },
+  }));
+
+  if (!rows.length) return 0;
+  const { error } = await supabase.from('reminder_events').insert(rows);
+  if (error) throw error;
+  return rows.length;
+}

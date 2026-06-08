@@ -1,6 +1,6 @@
-# Quran Girls Tracker
+# منصة المجتهدين
 
-موقع عربي RTL لإدارة ومتابعة حفظ القرآن للبنات، بواجهة وردية/بنفسجية ناعمة ولوحات منفصلة للإدارة والطالبة.
+موقع عربي RTL لإدارة ومتابعة حفظ القرآن للطالبات، بواجهة وردية/بنفسجية ناعمة ولوحات منفصلة للإدارة والطالبة.
 
 ## المزايا
 
@@ -11,6 +11,8 @@
 - حفظ كل البيانات في Supabase بدل `localStorage`.
 - RLS Policies تمنع الطالبة من رؤية بيانات غيرها.
 - تعديل السورة والآيات والصفحة والتاريخ والملاحظة والحالة والتقييم.
+- تقييم سريع من 1 إلى 10 من لوحة الإدارة، ويظهر مباشرة للطالبة في نتيجة اليوم والسجل.
+- إعداد تذكير سحابي محفوظ في Supabase مع جدول `reminder_events` ووظيفة Edge Function جاهزة للجدولة.
 - تصدير تقرير CSV من لوحة التقارير.
 - مجهز للنشر على Vercel أو Netlify.
 
@@ -75,11 +77,27 @@ supabase login
 supabase link --project-ref your-project-ref
 supabase functions deploy admin-create-user
 supabase functions deploy admin-delete-user
+supabase functions deploy daily-reminder-digest
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 supabase secrets set APP_ORIGIN=https://your-domain.com
+supabase secrets set REMINDER_CRON_SECRET=choose-a-long-random-secret
 ```
 
 مهم: لا تضع `SUPABASE_SERVICE_ROLE_KEY` داخل الواجهة أو Git.
+
+## التذكير السحابي
+
+لوحة الإدارة > التذكير تحفظ إعدادات التذكير في `app_settings` تحت المفتاح `cloud_reminders`.
+
+تمت إضافة جدول `reminder_events` لتسجيل أحداث التذكير اليومية. وظيفة:
+
+```text
+supabase/edge-functions/daily-reminder-digest/index.ts
+```
+
+تقرأ إعدادات `cloud_reminders` وتضيف أحداث تذكير لأوراد اليوم غير المكتملة. عند تفعيل Supabase Cron يمكن استدعاؤها يوميًا في الوقت المحدد.
+
+يوجد كذلك زر داخل لوحة الإدارة باسم "إنشاء تذكيرات اليوم الآن" يضيف تذكيرات اليوم مباشرة إلى `reminder_events`، وتظهر للطالبة في بطاقة "تذكيراتك".
 
 ## حسابات التجربة المطلوبة
 
@@ -148,6 +166,9 @@ dist
 - RLS مفعلة على كل الجداول.
 - الطالبة تقرأ بياناتها فقط.
 - الطالبة لا تستطيع تعديل التقييم أو خطة الحفظ.
+- الإدارة فقط تستطيع تعديل الحالة والتقييم من 10.
+- `app_settings` مقروءة للإدارة فقط.
+- وظيفة التذكير المجدولة تتطلب السر `REMINDER_CRON_SECRET` عبر الهيدر `x-reminder-secret`.
 - إنشاء المستخدمين يحتاج Edge Function أو إجراء من السيرفر لأن service role لا يجوز وضعه في المتصفح.
 
 ## الملفات المهمة
@@ -159,3 +180,4 @@ dist
 - `supabase/schema.sql`: الجداول والسياسات.
 - `supabase/seed.sql`: إعدادات أولية.
 - `supabase/edge-functions/admin-create-user/index.ts`: إنشاء حسابات آمنة.
+- `supabase/edge-functions/daily-reminder-digest/index.ts`: تجهيز أحداث التذكير السحابي.

@@ -72,6 +72,18 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.reminder_events (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references public.students(id) on delete cascade,
+  assignment_id uuid references public.daily_assignments(id) on delete cascade,
+  event_date date not null default current_date,
+  status text not null default 'queued' check (status in ('queued', 'sent', 'skipped', 'failed')),
+  message text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz
+);
+
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
@@ -173,6 +185,7 @@ alter table public.memorization_plans enable row level security;
 alter table public.daily_assignments enable row level security;
 alter table public.evaluations enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.reminder_events enable row level security;
 
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin" on public.profiles
@@ -221,5 +234,18 @@ create policy "settings_admin_all" on public.app_settings
 for all using (public.current_role() = 'admin') with check (public.current_role() = 'admin');
 
 drop policy if exists "settings_read_authenticated" on public.app_settings;
-create policy "settings_read_authenticated" on public.app_settings
-for select using (auth.uid() is not null);
+
+drop policy if exists "reminder_events_select_own_or_admin" on public.reminder_events;
+create policy "reminder_events_select_own_or_admin" on public.reminder_events
+for select using (public.current_role() = 'admin' or student_id = public.current_student_id());
+
+drop policy if exists "reminder_events_admin_all" on public.reminder_events;
+create policy "reminder_events_admin_all" on public.reminder_events
+for all using (public.current_role() = 'admin') with check (public.current_role() = 'admin');
+
+insert into public.app_settings (key, value)
+values (
+  'cloud_reminders',
+  '{"enabled": true, "time": "17:00", "timezone": "Asia/Kuwait", "channel": "in_app_cloud", "message": "تذكير لطيف: ورد اليوم بانتظار المتابعة."}'::jsonb
+)
+on conflict (key) do nothing;

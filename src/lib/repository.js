@@ -96,6 +96,8 @@ export async function createAssignment(row) {
     grade: normalizeGrade(row.grade),
     recitation_grade: normalizeGrade(row.recitation_grade),
     performance_grade: normalizeGrade(row.performance_grade),
+    sticker_emoji: row.sticker_emoji || null,
+    sticker_label: row.sticker_label || null,
     sort_order: Number(row.sort_order || 0),
   };
   const { data, error } = await supabase
@@ -226,6 +228,8 @@ export async function createDefaultPlan(studentId, profileId) {
     grade: null,
     recitation_grade: null,
     performance_grade: null,
+    sticker_emoji: null,
+    sticker_label: null,
   }));
 
   const { error: assignmentError } = await supabase.from('daily_assignments').insert(rows);
@@ -245,6 +249,8 @@ export async function upsertAssignment(row) {
     grade: normalizeGrade(row.grade),
     recitation_grade: normalizeGrade(row.recitation_grade),
     performance_grade: normalizeGrade(row.performance_grade),
+    sticker_emoji: row.sticker_emoji || null,
+    sticker_label: row.sticker_label || null,
   };
   return updateAssignment(row.id, payload);
 }

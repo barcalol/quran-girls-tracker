@@ -51,6 +51,8 @@ create table if not exists public.daily_assignments (
   grade numeric(3,1) check (grade is null or (grade between 0 and 10 and grade * 2 = floor(grade * 2))),
   recitation_grade numeric(3,1) check (recitation_grade is null or (recitation_grade between 0 and 10 and recitation_grade * 2 = floor(recitation_grade * 2))),
   performance_grade numeric(3,1) check (performance_grade is null or (performance_grade between 0 and 10 and performance_grade * 2 = floor(performance_grade * 2))),
+  sticker_emoji text,
+  sticker_label text,
   completed_at timestamptz,
   sort_order int not null default 0,
   created_at timestamptz not null default now(),
@@ -174,6 +176,8 @@ begin
       or new.grade is distinct from old.grade
       or new.recitation_grade is distinct from old.recitation_grade
       or new.performance_grade is distinct from old.performance_grade
+      or new.sticker_emoji is distinct from old.sticker_emoji
+      or new.sticker_label is distinct from old.sticker_label
       or new.sort_order is distinct from old.sort_order
     then
       raise exception 'students may only update status, student_note, and completed_at';

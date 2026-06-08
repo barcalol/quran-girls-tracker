@@ -605,9 +605,9 @@ textarea {
 
 .quickControls {
   display: grid;
-  grid-template-columns: minmax(132px, 1fr) minmax(118px, .8fr) minmax(118px, .8fr);
+  grid-template-columns: minmax(132px, 1fr) minmax(118px, .8fr) minmax(118px, .8fr) minmax(150px, 1fr);
   gap: 10px;
-  min-width: 380px;
+  min-width: 540px;
 }
 
 .quickControls label {
@@ -623,8 +623,26 @@ textarea {
 
 .editGrid {
   display: grid;
-  grid-template-columns: 150px 1fr 90px 90px 110px 140px 130px 130px 1.4fr;
+  grid-template-columns: 150px 1fr 90px 90px 110px 140px 130px 130px 150px 1.4fr;
   gap: 8px;
+}
+
+.stickerSelect {
+  font-weight: 900;
+}
+
+.rowSticker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  border: 1px solid rgba(169, 39, 114, .18);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--pink-dark);
+  background: #fff3fa;
+  font-weight: 900;
 }
 
 .studentActions {
@@ -679,6 +697,31 @@ textarea {
 .resultCard strong {
   color: var(--ink);
   font: 900 42px/1 "Noto Kufi Arabic", sans-serif;
+}
+
+.studentStickerShowcase {
+  width: min(100%, 360px);
+  border: 1px solid rgba(169, 39, 114, .2);
+  border-radius: 28px;
+  padding: 18px 20px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(229, 79, 154, .18), transparent 54%),
+    linear-gradient(135deg, #fff, #fff3fa);
+  box-shadow: 0 18px 46px rgba(169, 39, 114, .12);
+}
+
+.studentStickerShowcase span {
+  font-size: clamp(72px, 10vw, 116px);
+  line-height: 1;
+}
+
+.studentStickerShowcase strong {
+  color: var(--pink-dark);
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.25;
 }
 
 .permissionNote {

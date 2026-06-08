@@ -59,11 +59,55 @@ const adminStatusOptions = [
 
 const gradeOptions = Array.from({ length: 21 }, (_, index) => index / 2);
 
+const stickerLibrary = [
+  ['🌟', 'نجم اليوم'], ['🏆', 'بطل التسميع'], ['👑', 'ملك الأداء'], ['💎', 'ألماسة'], ['🔥', 'حماس عالي'],
+  ['🚀', 'انطلاق قوي'], ['✨', 'إبداع'], ['👏', 'تصفيق'], ['💪', 'قوة وثبات'], ['🎯', 'دقة ممتازة'],
+  ['🥇', 'مركز أول'], ['🥈', 'تقدم رائع'], ['🥉', 'محاولة جميلة'], ['🎖️', 'وسام'], ['🏅', 'إنجاز'],
+  ['📚', 'محب القرآن'], ['🕌', 'نور المسجد'], ['🤲', 'بركة'], ['🕋', 'ثبات'], ['🌙', 'نور'],
+  ['☀️', 'إشراق'], ['🌈', 'ألوان الفرح'], ['🪄', 'لمسة سحرية'], ['🎉', 'احتفال'], ['🎊', 'فرحة'],
+  ['💫', 'تألق'], ['🌺', 'زهرة'], ['🌸', 'ورد'], ['🌷', 'لطافة'], ['🍃', 'هدوء'],
+  ['🦋', 'خفّة'], ['🐝', 'نشاط'], ['🦁', 'شجاعة'], ['🐎', 'سرعة'], ['🦅', 'علو'],
+  ['🧠', 'تركيز'], ['💡', 'فطنة'], ['📝', 'إتقان'], ['✅', 'ممتاز'], ['☑️', 'مكتمل'],
+  ['📌', 'ثابت'], ['🔖', 'علامة تميز'], ['🧭', 'اتجاه صحيح'], ['🧩', 'ذكاء'], ['🔐', 'حفظ متين'],
+  ['🎵', 'تلاوة جميلة'], ['🎤', 'صوت واضح'], ['📣', 'أداء قوي'], ['🫶', 'محبة'], ['🤍', 'صفاء'],
+  ['💚', 'قلب أخضر'], ['💜', 'قلب بنفسجي'], ['💙', 'قلب أزرق'], ['❤️', 'قلب مجتهد'], ['🧡', 'دفء'],
+  ['🍯', 'حلاوة'], ['🍀', 'توفيق'], ['🌿', 'نمو'], ['🌱', 'بداية جميلة'], ['🌳', 'ثبات كبير'],
+  ['🪴', 'رعاية'], ['🏵️', 'شارة'], ['🎗️', 'تميز'], ['🪙', 'ذهب'], ['💰', 'كنز'],
+  ['🧡', 'روح طيبة'], ['⚡', 'طاقة'], ['🌠', 'أمنية'], ['🛡️', 'حفظ قوي'], ['⚔️', 'عزيمة'],
+  ['🧵', 'ترابط'], ['🪶', 'خفة الأداء'], ['📿', 'ذكر'], ['🕯️', 'نور هادئ'], ['🔆', 'إضاءة'],
+  ['🎁', 'هدية'], ['🧸', 'لطيف'], ['🎨', 'لمسة فنية'], ['🖌️', 'جمال الأداء'], ['🧁', 'حلاوة التسميع'],
+  ['🍭', 'متعة'], ['🍎', 'نشاط صحي'], ['🥛', 'صفاء'], ['🍋', 'انتعاش'], ['🍓', 'تميز'],
+  ['🏃', 'تقدم سريع'], ['🚴', 'استمرار'], ['🧗', 'تحدي'], ['🏋️', 'قوة تدريب'], ['🤸', 'مرونة'],
+  ['🎓', 'تعلم'], ['🧑‍🏫', 'فهم'], ['📖', 'قراءة متينة'], ['📜', 'أثر طيب'], ['🖋️', 'ضبط'],
+  ['💌', 'رسالة تقدير'], ['🛎️', 'تنبيه ممتاز'], ['🔔', 'يقظة'], ['🧿', 'حفظ مبارك'], ['🤩', 'مبهر'],
+];
+
 function GradeSelect({ value, onChange, label = 'بدون تقييم' }) {
   return (
     <select value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
       <option value="">{label}</option>
       {gradeOptions.map((grade) => <option key={grade} value={grade}>{formatGrade(grade)}/10</option>)}
+    </select>
+  );
+}
+
+function StickerSelect({ emoji, label, onChange }) {
+  const selectedValue = emoji ? `${emoji}|${label || ''}` : '';
+  return (
+    <select
+      className="stickerSelect"
+      value={selectedValue}
+      onChange={(event) => {
+        const [nextEmoji = '', nextLabel = ''] = event.target.value.split('|');
+        onChange(nextEmoji, nextLabel);
+      }}
+    >
+      <option value="">بدون ملصق</option>
+      {stickerLibrary.map(([itemEmoji, itemLabel], index) => (
+        <option key={`${itemEmoji}-${itemLabel}-${index}`} value={`${itemEmoji}|${itemLabel}`}>
+          {itemEmoji} {itemLabel}
+        </option>
+      ))}
     </select>
   );
 }
@@ -89,6 +133,23 @@ function averageGrades(recitation, performance) {
 
 function assignmentAverage(row) {
   return averageGrades(row.recitation_grade ?? row.grade, row.performance_grade);
+}
+
+function suggestedSticker(rowOrGrade) {
+  const grade = typeof rowOrGrade === 'object' ? numericGrade(rowOrGrade.performance_grade ?? assignmentAverage(rowOrGrade)) : numericGrade(rowOrGrade);
+  if (grade === null) return null;
+  if (grade >= 9.5) return ['🏆', 'بطل الأداء'];
+  if (grade >= 9) return ['🌟', 'نجم اليوم'];
+  if (grade >= 8.5) return ['🎯', 'دقة ممتازة'];
+  if (grade >= 8) return ['💪', 'قوة وثبات'];
+  if (grade >= 7) return ['🌿', 'تقدم جميل'];
+  if (grade >= 6) return ['📚', 'استمرار'];
+  return ['🧭', 'نراجع وننطلق'];
+}
+
+function assignmentSticker(row) {
+  if (row.sticker_emoji) return [row.sticker_emoji, row.sticker_label || 'ملصق الأداء'];
+  return suggestedSticker(row);
 }
 
 function gradeSummary(row) {
@@ -289,6 +350,8 @@ function DemoAssignmentComposer({ student, assignments, onAdd }) {
       grade: averageGrades(newRow.recitation_grade, newRow.performance_grade),
       recitation_grade: newRow.recitation_grade === '' ? null : Number(newRow.recitation_grade),
       performance_grade: newRow.performance_grade === '' ? null : Number(newRow.performance_grade),
+      sticker_emoji: newRow.sticker_emoji,
+      sticker_label: newRow.sticker_label,
       sort_order: assignments.length + 1,
     });
   }
@@ -303,7 +366,11 @@ function DemoAssignmentComposer({ student, assignments, onAdd }) {
         <input value={newRow.page_or_face} placeholder="رقم الوجه/الصفحة" onChange={(e) => setNewRow({ ...newRow, page_or_face: e.target.value })} />
         <select value={newRow.status} onChange={(e) => setNewRow({ ...newRow, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
         <GradeSelect value={newRow.recitation_grade} onChange={(value) => setNewRow({ ...newRow, recitation_grade: value })} label="تقييم التسميع" />
-        <GradeSelect value={newRow.performance_grade} onChange={(value) => setNewRow({ ...newRow, performance_grade: value })} label="تقييم الأداء" />
+        <GradeSelect value={newRow.performance_grade} onChange={(value) => {
+          const sticker = newRow.sticker_emoji ? null : suggestedSticker(value);
+          setNewRow({ ...newRow, performance_grade: value, sticker_emoji: newRow.sticker_emoji || sticker?.[0] || '', sticker_label: newRow.sticker_label || sticker?.[1] || '' });
+        }} label="تقييم الأداء" />
+        <StickerSelect emoji={newRow.sticker_emoji} label={newRow.sticker_label} onChange={(emoji, label) => setNewRow({ ...newRow, sticker_emoji: emoji, sticker_label: label })} />
         <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالب" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
       </div>
       <button className="doneButton" onClick={addDemoAssignment}><Plus /> إضافة الورد</button>
@@ -585,7 +652,11 @@ function AssignmentsEditor({ student, assignments, saveAssignment, reload, setTo
           <input value={newRow.page_or_face} placeholder="رقم الوجه/الصفحة" onChange={(e) => setNewRow({ ...newRow, page_or_face: e.target.value })} />
           <select value={newRow.status} onChange={(e) => setNewRow({ ...newRow, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
           <GradeSelect value={newRow.recitation_grade} onChange={(value) => setNewRow({ ...newRow, recitation_grade: value })} label="تقييم التسميع" />
-          <GradeSelect value={newRow.performance_grade} onChange={(value) => setNewRow({ ...newRow, performance_grade: value })} label="تقييم الأداء" />
+          <GradeSelect value={newRow.performance_grade} onChange={(value) => {
+            const sticker = newRow.sticker_emoji ? null : suggestedSticker(value);
+            setNewRow({ ...newRow, performance_grade: value, sticker_emoji: newRow.sticker_emoji || sticker?.[0] || '', sticker_label: newRow.sticker_label || sticker?.[1] || '' });
+          }} label="تقييم الأداء" />
+          <StickerSelect emoji={newRow.sticker_emoji} label={newRow.sticker_label} onChange={(emoji, label) => setNewRow({ ...newRow, sticker_emoji: emoji, sticker_label: label })} />
           <input value={newRow.admin_note} placeholder="ملاحظة تظهر للطالب" onChange={(e) => setNewRow({ ...newRow, admin_note: e.target.value })} />
         </div>
         <button className="doneButton" onClick={addAssignment}><Plus /> إضافة الورد</button>
@@ -622,7 +693,11 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
           <input value={draft.page_or_face || ''} onChange={(e) => setDraft({ ...draft, page_or_face: e.target.value })} />
           <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>{adminStatusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
           <GradeSelect value={draft.recitation_grade ?? draft.grade ?? ''} onChange={(value) => setDraft({ ...draft, recitation_grade: value, grade: averageGrades(value, draft.performance_grade) })} label="تقييم التسميع" />
-          <GradeSelect value={draft.performance_grade ?? ''} onChange={(value) => setDraft({ ...draft, performance_grade: value, grade: averageGrades(draft.recitation_grade, value) })} label="تقييم الأداء" />
+          <GradeSelect value={draft.performance_grade ?? ''} onChange={(value) => {
+            const sticker = draft.sticker_emoji ? null : suggestedSticker(value);
+            setDraft({ ...draft, performance_grade: value, grade: averageGrades(draft.recitation_grade, value), sticker_emoji: draft.sticker_emoji || sticker?.[0] || '', sticker_label: draft.sticker_label || sticker?.[1] || '' });
+          }} label="تقييم الأداء" />
+          <StickerSelect emoji={draft.sticker_emoji} label={draft.sticker_label} onChange={(emoji, label) => setDraft({ ...draft, sticker_emoji: emoji, sticker_label: label })} />
           <input value={draft.admin_note || ''} onChange={(e) => setDraft({ ...draft, admin_note: e.target.value })} placeholder="ملاحظة الإدارة" />
         </div>
         <button className="iconButton" onClick={() => saveAssignment(draft)}><Save /></button>
@@ -638,6 +713,7 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
         <h3>سورة {row.surah_name} • من {row.from_ayah} إلى {row.to_ayah}</h3>
         <p>الوجه {row.page_or_face || '—'} • {row.admin_note || 'بدون ملاحظة'}</p>
         <small>{statusLabels[row.status]} {gradeSummary(row)}</small>
+        {assignmentSticker(row) && <span className="rowSticker">{assignmentSticker(row)[0]} {assignmentSticker(row)[1]}</span>}
         {row.student_note && <small>ملاحظة الطالب: {row.student_note}</small>}
       </div>
       {!readOnly && saveAssignment && (
@@ -652,7 +728,20 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
           </label>
           <label>
             الأداء
-            <GradeSelect value={row.performance_grade ?? ''} onChange={(value) => saveAssignment({ ...row, performance_grade: value === '' ? null : Number(value), grade: averageGrades(row.recitation_grade, value) })} />
+            <GradeSelect value={row.performance_grade ?? ''} onChange={(value) => {
+              const sticker = row.sticker_emoji ? null : suggestedSticker(value);
+              saveAssignment({
+                ...row,
+                performance_grade: value === '' ? null : Number(value),
+                grade: averageGrades(row.recitation_grade, value),
+                sticker_emoji: row.sticker_emoji || sticker?.[0] || null,
+                sticker_label: row.sticker_label || sticker?.[1] || null,
+              });
+            }} />
+          </label>
+          <label>
+            الملصق
+            <StickerSelect emoji={row.sticker_emoji} label={row.sticker_label} onChange={(emoji, label) => saveAssignment({ ...row, sticker_emoji: emoji, sticker_label: label })} />
           </label>
         </div>
       )}
@@ -662,6 +751,7 @@ function AssignmentRow({ row, editable, readOnly, studentMode, saveAssignment, u
 
 function StudentToday({ assignment }) {
   if (!assignment) return <section className="panel"><div className="emptyState">لا يوجد ورد اليوم.</div></section>;
+  const sticker = assignmentSticker(assignment);
   return (
     <section className="panel">
       <PanelTitle icon={<CalendarDays />} title="نتيجة اليوم" subtitle={formatDate(assignment.assignment_date)} />
@@ -671,6 +761,12 @@ function StudentToday({ assignment }) {
         <span>الوجه {assignment.page_or_face} • {assignment.admin_note || 'بدون ملاحظة'}</span>
       </div>
       <div className="resultCard">
+        {sticker && (
+          <div className="studentStickerShowcase">
+            <span>{sticker[0]}</span>
+            <strong>{sticker[1]}</strong>
+          </div>
+        )}
         <span>{statusLabels[assignment.status]}</span>
         <strong>{assignmentAverage(assignment) != null ? `${formatGrade(assignmentAverage(assignment))}/10` : 'لم يتم التقييم بعد'}</strong>
         <div className="gradeBreakdown">
@@ -726,6 +822,8 @@ function makeEmptyAssignment(student, assignments) {
     grade: '',
     recitation_grade: '',
     performance_grade: '',
+    sticker_emoji: '',
+    sticker_label: '',
     admin_note: '',
     sort_order: (assignments.at(-1)?.sort_order || assignments.length) + 1,
   };
